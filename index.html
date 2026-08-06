@@ -781,7 +781,13 @@ li.trow .detail{grid-column:1/-1}
 .setme button{border:0;background:none;font-size:17px;color:var(--faint);cursor:pointer;
   line-height:1;padding:2px 4px}
 .setme button:hover{color:var(--orange)}
-@media(max-width:820px){ .setme{font-size:13px;padding:10px 12px} }
+/* スマホでは説明文が×ボタンの手前で折り返して読みにくい。
+   狭いときはボタンだけ残す。押せば行けるので、説明は要らない。 */
+@media(max-width:820px){
+  .setme{font-size:13px;padding:10px 12px;align-items:center}
+  .setme .why{display:none}
+  .setgo{margin-right:0}
+}
 
 /* ══════ ログイン（コード方式）══════ */
 /* 6桁は大きく、1文字ずつ離して出す。打ち間違いに気づけるように */
@@ -1228,7 +1234,7 @@ footer b{color:var(--sub)}
   <!-- 年度が変わったときだけ出る。ふだんは何も無い。 -->
   <div id="nendo" style="display:none"></div>
   <div class="setme" id="setme" style="display:none">
-    <span><button class="setgo" id="setme-go">アカウントで所属を選ぶ</button>取れない授業が消え、学科ごとの履修率が出ます。</span>
+    <span><button class="setgo" id="setme-go">アカウントで所属を選ぶ</button><span class="why">取れない授業が消え、学科ごとの履修率が出ます。</span></span>
     <button id="setme-x" title="閉じる">×</button>
   </div>
   <!-- ─── 時間割 ─── -->
