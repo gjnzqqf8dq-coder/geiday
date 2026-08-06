@@ -29,18 +29,33 @@ const DEPTLIST=["デザイン","油画","日本画","彫刻","工芸","建築","
 
 /* ── 4つの板の定義 ───────────────────────── */
 const BOARDS={
+  /* 展示と公募は、どちらも「日付までに動くもの」なので1つの板にまとめた。
+     タブが増えすぎていたのと、展示を見に行く導線と公募に出す導線は
+     同じ気分で開くところだから。並びは日付順で、両方が混ざって出る。 */
   ex:{
-    key:'geidai_exhib_v1', dummy:()=> (typeof DUMMY_EXHIB!=='undefined'?DUMMY_EXHIB:[]),
-    title:'展示情報',
-    lead:'学内・学外の展示を持ち寄る場所です。自分の展示も、見に行ってよかった展示も。',
-    filters:[{k:'when',label:'いつ',opts:['これから','開催中','終わった']}],
-    /* 終わった展示が上に来ても仕方がない。
-       これからと開催中を先に、その中で始まる順。 */
+    key:'geidai_exhib_v1',
+    dummy:()=> [
+      ...((typeof DUMMY_EXHIB!=='undefined'?DUMMY_EXHIB:[]).map(x=>({...x,_t:'展示'}))),
+      ...((typeof REAL_KOBO!=='undefined'?REAL_KOBO:[]).map(x=>({...x,_t:'公募'}))),
+    ],
+    title:'展示・公募',
+    lead:'展示と、いま出せる公募。日付の近い順に並びます。',
+    filters:[{k:'t',label:'種類',opts:['展示','公募']},
+             {k:'when',label:'いつ',opts:['これから','開催中','終わった']}],
+    /* 終わったものが上に来ても仕方がない。
+       これから・開催中を先に、その中で日付の近い順。 */
     sort:(a,b)=>{
-      const rank=x=> x.from>TODAY?1 : (x.to>=TODAY?0:2);
-      return rank(a)-rank(b) || (a.from||'').localeCompare(b.from||'');
+      const rank=x=>{
+        if(x._t==='公募') return (x.due||'')>=TODAY?0:2;
+        return (x.from||'')>TODAY?1 : ((x.to||'')>=TODAY?0:2);
+      };
+      const key=x=> x._t==='公募' ? (x.due||'') : (x.from||'');
+      return rank(a)-rank(b) || key(a).localeCompare(key(b));
     },
-    fields:[
+    /* 出すときは、まず展示か公募かを選ぶ。選んだほうの項目だけ出す。 */
+    kinds:['展示','公募'],
+    fieldsFor(k){ return k==='公募' ? this.fieldsKobo : this.fieldsExhib; },
+    fieldsExhib:[
       {k:'title',t:'展示の名前',type:'text',req:true,max:40},
       {k:'who',t:'誰の展示',type:'text',max:30,ph:'例）デザイン科 有志'},
       {k:'from',t:'はじまる日',type:'date',req:true},
@@ -51,14 +66,42 @@ const BOARDS={
       {k:'body',t:'ひとこと',type:'area',max:140},
       {k:'url',t:'リンク',type:'url',ph:'https://'},
     ],
+    fieldsKobo:[
+      {k:'title',t:'名称',type:'text',req:true,max:50},
+      {k:'kind',t:'種類',type:'sel',opts:['学内','学外','奨学金'],req:true},
+      {k:'org',t:'主催',type:'text',max:40},
+      {k:'due',t:'締切',type:'date',req:true},
+      {k:'target',t:'対象',type:'text',max:30,ph:'例）学部・大学院'},
+      {k:'amount',t:'金額（円・わかれば）',type:'num'},
+      {k:'url',t:'公式ページ',type:'url',ph:'https://',req:true},
+      {k:'body',t:'ひとこと（要項の転載はしないでください）',type:'area',max:120},
+    ],
+    get fields(){ return this.fieldsExhib; },   // 旧い呼び出しへの保険
     row(x){
+      if(x._t==='公募'){
+        const left=Math.ceil((new Date(x.due)-new Date(TODAY))/86400000);
+        const st=left>=0?(left<=14?'あと'+left+'日':'公募'):'過ぎた';
+        const amt = x.amountRaw ? x.amountRaw
+                  : (x.amount ? Number(x.amount).toLocaleString()+'円' : '');
+        return {tag:st, tagCls:left<0?'past':(left<=14?'soon':'live'),
+          head:x.title, sub:[x.kind,x.org].filter(Boolean).join(' ／ '),
+          meta:`締切 ${x.dueRaw||x.due}${amt?' ／ '+amt:''}`,
+          body:[x.target?'応募資格：'+x.target:'', x.body].filter(Boolean).join('\n'),
+          url:x.url};
+      }
       const st=x.from>TODAY?'これから':(x.to>=TODAY?'開催中':'終わった');
       return {tag:st, tagCls:st==='開催中'?'live':(st==='これから'?'soon':'past'),
         head:x.title, sub:[x.who,x.bld?bldName(x.bld):x.place].filter(Boolean).join(' ／ '),
         meta:`${x.from} 〜 ${x.to}${x.free?' ／ 誰でも入れる':''}`, body:x.body, url:x.url};
     },
-    match(x,f){ const st=x.from>TODAY?'これから':(x.to>=TODAY?'開催中':'終わった');
-      return !f.when||f.when===st; },
+    match(x,f){
+      if(f.t && f.t!==x._t) return false;
+      if(!f.when) return true;
+      if(x._t==='公募') return f.when==='終わった' ? (x.due||'')<TODAY : (x.due||'')>=TODAY;
+      const st=x.from>TODAY?'これから':(x.to>=TODAY?'開催中':'終わった');
+      return f.when===st;
+    },
+    note:'公募は応募の前に必ず公式ページで最新の要項を確認してください。要項の本文は貼らないでください。',
   },
   gv:{
     key:'geidai_give_v1', dummy:()=> (typeof DUMMY_GIVE!=='undefined'?DUMMY_GIVE:[]),
@@ -112,50 +155,14 @@ const BOARDS={
     match(x,f){ const st=x.date>=TODAY?'これから':'終わった';
       return (!f.when||f.when===st)&&(!f.dept||f.dept===x.dept); },
   },
-  kb:{
-    key:'geidai_kobo_v1',
-    /* ここだけダミーではなく実データ。1件ずつ公式ページを開いて
-       締切・応募資格・URLを確認したものを使う。 */
-    dummy:()=> (typeof REAL_KOBO!=='undefined'?REAL_KOBO:[]),
-    title:'公募・奨学金',
-    lead:'いま応募できる公募と奨学金。締切の近い順。応募の前に必ず公式ページで最新の要項を確認してください。',
-    filters:[{k:'kind',label:'種類',opts:['学内','学外','奨学金']},
-             {k:'when',label:'締切',opts:['まだ間に合う','過ぎた']}],
-    sort:(a,b)=> (a.due||'').localeCompare(b.due||''),
-    fields:[
-      {k:'title',t:'名称',type:'text',req:true,max:50},
-      {k:'kind',t:'種類',type:'sel',opts:['学内','学外','奨学金'],req:true},
-      {k:'org',t:'主催',type:'text',max:40},
-      {k:'due',t:'締切',type:'date',req:true},
-      {k:'target',t:'対象',type:'text',max:30,ph:'例）学部・大学院'},
-      {k:'amount',t:'金額（円・わかれば）',type:'num'},
-      {k:'url',t:'公式ページ',type:'url',ph:'https://',req:true},
-      {k:'body',t:'ひとこと（要項の転載はしないでください）',type:'area',max:120},
-    ],
-    row(x){
-      const left=Math.ceil((new Date(x.due)-new Date(TODAY))/86400000);
-      const st=left>=0?(left<=14?'あと'+left+'日':'まだ間に合う'):'過ぎた';
-      const amt = x.amountRaw ? x.amountRaw
-                : (x.amount ? Number(x.amount).toLocaleString()+'円' : '');
-      return {tag:st, tagCls:left<0?'past':(left<=14?'live':'soon'),
-        head:x.title, sub:[x.kind,x.org].filter(Boolean).join(' ／ '),
-        meta:`締切 ${x.dueRaw||x.due}${amt?' ／ '+amt:''}`,
-        body:[x.target?'応募資格：'+x.target:'', x.body].filter(Boolean).join('\n'),
-        url:x.url};
-    },
-    match(x,f){ const left=Math.ceil((new Date(x.due)-new Date(TODAY))/86400000);
-      const st=left>=0?'まだ間に合う':'過ぎた';
-      return (!f.kind||f.kind===x.kind)&&(!f.when||f.when===st); },
-    note:'要項の本文は貼らないでください。',
-  },
 };
 
 const state={};
-Object.keys(BOARDS).forEach(k=>state[k]={f:{},open:false});
+Object.keys(BOARDS).forEach(k=>state[k]={f:{},open:false,kind:(BOARDS[k].kinds||[''])[0]});
 const mineOf=id=>LSg(BOARDS[id].key,[]);
-/* 公募だけは、あらかじめ入っているのがダミーではなく
-   1件ずつ公式ページで確かめた実データ。サーバに投稿が付いても引っ込めない。 */
-const REALDATA = new Set(['kb']);
+/* 展示・公募の板には、1件ずつ公式ページで確かめた公募の実データが混ざっている。
+   サーバに投稿が付いても、これは引っ込めない。 */
+const REALDATA = new Set(['ex']);
 const allOf=id=>{
   /* サーバに本物が入っている板では、ダミーを出さない。
      本物と作り物が混ざると、どれが本当か分からなくなる。 */
@@ -215,6 +222,8 @@ function render(id){
     if(typeof window.__gotoBuilding==='function') window.__gotoBuilding(Number(b.dataset.map));
   });
 
+  el.querySelectorAll('.bkind [data-kind]').forEach(b=>b.onclick=()=>{
+    st.kind=b.dataset.kind; render(id);});
   const go=document.getElementById(id+'-save');
   if(go) go.onclick=()=>submit(id);
   if(st.open) bindPic(id);
@@ -231,7 +240,12 @@ const openId = {};
 function detailHTML(id,x){
   const rows=[];
   const add=(k,v)=>{ if(v) rows.push([k,v]); };
-  if(id==='ex'){
+  if(id==='ex' && x._t==='公募'){
+    add('締切', x.dueRaw||x.due);
+    add('主催', x.org);
+    add('対象', x.target);
+    add('金額', x.amountRaw||(x.amount?Number(x.amount).toLocaleString()+'円':''));
+  } else if(id==='ex'){
     add('会期', [x.from,x.to].filter(Boolean).join(' 〜 '));
     add('会場', x.bld?bldName(x.bld):x.place);
     add('だれの', x.who);
@@ -246,11 +260,6 @@ function detailHTML(id,x){
     add('場所', x.bld?bldName(x.bld):'');
     add('科', x.dept);
     add('見学', x.open?'他の科の人も見られます':'学内向け');
-  } else if(id==='kb'){
-    add('締切', x.dueRaw||x.due);
-    add('主催', x.org);
-    add('対象', x.target);
-    add('金額', x.amountRaw||(x.amount?Number(x.amount).toLocaleString()+'円':''));
   }
   return `<div class="bdet">
     ${x.img?`<img class="bdpic" src="${esc(x.img)}" alt="">`:''}
@@ -265,8 +274,29 @@ function detailHTML(id,x){
   </div>`;
 }
 
+/* 公募には写真が無い。展示と混ざったときに行の背が揃わないので、
+   種類（学内／学外／奨学金）が分かる図をその場で描く。写真の代わり。
+   使う色は青と薄い青とオレンジだけ。 */
+function koboThumb(x){
+  const K={'学内':0,'学外':1,'奨学金':2}[x.kind] ?? 1;
+  const body=[
+    `<rect x="14" y="20" width="36" height="30" fill="#093FB4"/>
+     <rect x="22" y="28" width="20" height="4" fill="#EAF0FB"/>
+     <rect x="22" y="36" width="14" height="4" fill="#EAF0FB"/>`,
+    `<circle cx="32" cy="28" r="11" fill="#093FB4"/>
+     <path d="M18 52c0-8 6-13 14-13s14 5 14 13z" fill="#093FB4"/>
+     <circle cx="44" cy="18" r="6" fill="#FF5035"/>`,
+    `<circle cx="32" cy="34" r="15" fill="#FF5035"/>
+     <path d="M28 30h8M28 38h8M32 24v20" stroke="#1A1A1A" stroke-width="2.4" fill="none"/>`,
+  ][K];
+  return 'data:image/svg+xml;utf8,'+encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="96" height="96">`+
+    `<rect width="64" height="64" fill="#DCE5F7"/>${body}</svg>`);
+}
+
 function itemHTML(id,x){
   const r=BOARDS[id].row(x);
+  if(id==='ex' && x._t==='公募' && !x.img) x={...x, img:koboThumb(x)};
   const on = openId[id]===x.id;
   return `<div class="bitem${x.img?' haspic':''}${on?' open':''}" data-open="${esc(x.id)}">
     <span class="btag ${r.tagCls}">${esc(r.tag)}</span>
@@ -285,8 +315,14 @@ function itemHTML(id,x){
   </div>`;
 }
 function formHTML(id){
-  const F=BOARDS[id].fields;
-  return `<div class="bform">${F.map(f=>{
+  const B0=BOARDS[id], st=state[id];
+  /* 展示と公募は聞くことが違う。先に「どちらを出すか」を選ばせて、
+     選んだほうの項目だけ出す。両方並べると長くて手が止まる。 */
+  const F = B0.fieldsFor ? B0.fieldsFor(st.kind) : B0.fields;
+  const head = B0.kinds ? `<div class="bkind">${B0.kinds.map(k=>
+      `<button class="tbtn ${st.kind===k?'on':''}" data-kind="${esc(k)}">${esc(k)}を出す</button>`
+    ).join('')}</div>` : '';
+  return `<div class="bform">${head}${F.map(f=>{
     const n=id+'-'+f.k;
     if(f.type==='check') return `<label class="bcheck"><input type="checkbox" id="${n}">${f.t}</label>`;
     if(f.type==='area')  return `<label class="bfull">${f.t}${f.req?' <i>必須</i>':''}
@@ -304,7 +340,7 @@ function formHTML(id){
       <label class="pbtn" id="${id}-picbtn">写真を選ぶ（1枚・任意）
         <input type="file" id="${id}-pic" accept="image/*" hidden></label>
       <button class="plink" id="${id}-picclr" style="display:none">消す</button>
-      <span class="bpicnote">${id==='gv'?'ゆずる物が分かる写真を1枚。':'展示風景か案内の写真を1枚。'}
+      <span class="bpicnote">${id==='gv'?'ゆずる物が分かる写真を1枚。':(state[id].kind==='公募'?'案内の画像があれば1枚。':'展示風景か案内の写真を1枚。')}
         8MBまで。長辺640pxに縮めて保存します。</span>
     </div>`:''}
   <div class="bsave"><button class="btn o" id="${id}-save">出す</button></div></div>`;
@@ -337,11 +373,16 @@ function bindPic(id){
 }
 function submit(id){
   const B0=BOARDS[id], v={};
-  for(const f of B0.fields){
+  /* いま画面に出ている項目だけを拾う。展示のフォームで公募の項目を
+     読みに行くと、要る項目が空だと言われて出せなくなる。 */
+  const FS = B0.fieldsFor ? B0.fieldsFor(state[id].kind) : B0.fields;
+  for(const f of FS){
     const el=document.getElementById(id+'-'+f.k);
+    if(!el) continue;
     v[f.k]= f.type==='check' ? el.checked : el.value.trim();
     if(f.req && !v[f.k]){ alert(f.t+'を入れてください。'); el.focus(); return; }
   }
+  if(B0.kinds) v._t = state[id].kind;
   if(v.url && !/^https?:\/\//i.test(v.url)){ alert('リンクは http:// か https:// から始めてください。'); return; }
   if(v.from && v.to && v.from>v.to){ alert('おわる日が、はじまる日より前になっています。'); return; }
   const m=mineOf(id);

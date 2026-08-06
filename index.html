@@ -87,34 +87,38 @@ button,select,input,textarea{font-family:inherit;color:inherit}
    青地に白は 8.82:1 で読める（オレンジ地に白は 3.26:1 しかないので使わない）。 */
 header{background:var(--ink);position:sticky;top:0;z-index:30}
 /* ヘッダーは画面幅いっぱいに使う。中央に寄せると、
-   広い画面でロゴとタグラインが真ん中に浮いて据わりが悪い。 */
-/* ヘッダに置くのはロゴとタグラインだけ。
-   所属はアカウントで決めるので、ここにセレクトは要らない。
-   SNSも、公式サイトへ行く導線は記事タブにある。 */
-.hrow{width:100%;padding:30px 48px 6px;display:flex;align-items:center}
-/* 公式のロゴ（鳥のマーク＋Geiday）＋ タグライン
-   名前は、この画面でいちばん大きい文字。ここが縮むと
-   「授業表のおまけ」に見える。字間も広げて、左に詰まらせない。 */
-.brand{white-space:nowrap;display:flex;align-items:center;gap:22px}
+   広い画面でロゴとタグラインが真ん中に浮いて据わりが悪い。
+
+   帯の高さを詰めるため、タグラインは Geiday の「下」ではなく「横」に置く。
+   下に積むと 60px＋余白＋18px で100px超えるが、横なら文字のいちばん高いところ
+   だけで決まるので、名前を小さくせずに帯を2/3にできる。 */
+.hrow{width:100%;padding:15px 48px 5px;display:flex;align-items:center;gap:24px}
+/* 公式のロゴ（鳥のマーク＋Geiday）＋ タグライン */
+.brand{white-space:nowrap;display:flex;align-items:baseline;gap:18px}
 /* マークは背景を敷かずに、そのまま青の上に置く。
    logo.js の画像は不透明画素の外接矩形で切り抜いてあり、
    縁に白いにじみが無いことを確認済みなので、白い輪は出ない。 */
-.gmarkwrap{display:block;width:96px;flex:0 0 96px;line-height:0}
+.gmarkwrap{display:block;width:70px;flex:0 0 70px;line-height:0;align-self:center}
 .gmark{width:100%;height:auto;display:block}
-.btxt{display:block}
+.btxt{display:flex;align-items:baseline;gap:20px;flex-wrap:wrap}
 .gword{font-family:Karla,"Helvetica Neue",Arial,sans-serif;font-weight:700;
-  font-size:60px;letter-spacing:.04em;color:var(--paper);display:block;line-height:1}
-.brand small{display:block;font-size:18px;letter-spacing:.3em;color:#fff;
-  font-weight:700;margin-top:16px;opacity:.97}
+  font-size:52px;letter-spacing:.04em;color:var(--paper);display:block;line-height:1}
+.brand small{display:block;font-size:17px;letter-spacing:.28em;color:#fff;
+  font-weight:700;opacity:.97}
+/* 公式サイトと同じく、帯の右端にXとInstagram */
+.hsns{margin-left:auto;display:flex;gap:4px;align-items:center;flex:0 0 auto}
+.hsns a{display:grid;place-items:center;width:38px;height:38px;border-radius:50%;
+  color:#fff;opacity:.85;transition:background .12s,opacity .12s}
+.hsns a:hover{opacity:1;background:rgba(255,255,255,.2)}
 /* 曜日が公開されていない科目についての断り書き。隠さず、数字で出す */
 .ttwarn{margin:16px 0 0;padding:11px 14px;background:var(--orange-tint);border:0;box-shadow:inset 3px 0 0 var(--orange);
   border-radius:3px;font-size:13px;line-height:1.85;color:var(--ink)}
 .ttwarn b{color:var(--orange)}
 /* タブの文字の左端が、上のマークの左端（48px）に揃うようにする。
    タブ自身が左に15px持っているので 48-15=33px。 */
-.tabs{width:100%;padding:14px 33px 0;display:flex;gap:2px;flex-wrap:wrap}
+.tabs{width:100%;padding:9px 33px 0;display:flex;gap:2px;flex-wrap:wrap}
 /* タブは青の上。選んでいるものは白い面で抜く。下線1本より強く、迷わない。 */
-.tab{padding:9px 15px 10px;border:0;background:none;cursor:pointer;font-size:14px;
+.tab{padding:8px 14px 9px;border:0;background:none;cursor:pointer;font-size:14px;
   letter-spacing:.08em;color:#fff;opacity:.72;border-radius:4px 4px 0 0;
   transition:background .12s,opacity .12s}
 .tab:hover{opacity:1;background:rgba(255,255,255,.14)}
@@ -129,9 +133,9 @@ main{max-width:1600px;margin:0 auto;padding:24px 32px 90px}
 .ttbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
 /* タブの文字の左端が、上のマークの左端（48px）に揃うようにする。
    タブ自身が左に15px持っているので 48-15=33px。 */
-.tabs{width:100%;padding:14px 33px 0;display:flex;gap:2px;flex-wrap:wrap}
+.tabs{width:100%;padding:9px 33px 0;display:flex;gap:2px;flex-wrap:wrap}
 /* タブは青の上。選んでいるものは白い面で抜く。下線1本より強く、迷わない。 */
-.tab{padding:9px 15px 10px;border:0;background:none;cursor:pointer;font-size:14px;
+.tab{padding:8px 14px 9px;border:0;background:none;cursor:pointer;font-size:14px;
   letter-spacing:.08em;color:#fff;opacity:.72;border-radius:4px 4px 0 0;
   transition:background .12s,opacity .12s}
 .tab:hover{opacity:1;background:rgba(255,255,255,.14)}
@@ -716,8 +720,11 @@ li.trow .detail{grid-column:1/-1}
 .bs{font-size:11.5px;color:var(--sub);margin-top:2px}
 .bm{font-size:11.5px;color:var(--faint);margin-top:3px;font-variant-numeric:tabular-nums}
 .bb{font-size:13px;line-height:1.8;margin-top:6px;white-space:pre-line}
-.bu{display:inline-block;margin-top:6px;font-size:11.5px;color:var(--orange);
-  border-bottom:1px solid var(--orange);text-decoration:none}
+/* 下線1本のリンクではなく、押せる面にする。 */
+.bu{display:inline-block;margin-top:8px;font-size:11.5px;font-weight:700;
+  color:var(--ink);background:var(--paper);padding:5px 11px;text-decoration:none;
+  transition:background .12s,color .12s}
+.bu:hover{background:var(--ink);color:var(--paper)}
 .bact{display:flex;flex-direction:column;gap:4px}
 .bact button{font-size:11.5px;color:var(--faint);border:1px solid var(--rule);background:none;
   padding:2px 8px;border-radius:2px;cursor:pointer;white-space:nowrap}
@@ -839,8 +846,11 @@ li.trow .detail{grid-column:1/-1}
 .arrow2:hover{background:var(--hover)}
 /* 見出しの図。写真は持っていないので、記事の種類が分かる形を青で描く */
 .arthumb{width:78px;height:78px;display:grid;place-items:center;border-radius:var(--r-sm);
-  background:var(--blue-tint)}
+  background:var(--blue-tint);overflow:hidden}
 .arrow2:hover .arthumb{background:var(--paper)}
+/* 写真がある記事は、面いっぱいに写真を敷く。角の丸みは箱側で切る。 */
+.arthumb.pic{background:none}
+.arthumb img{width:100%;height:100%;object-fit:cover;display:block}
 .arthumb svg{width:46px;height:46px;fill:none;stroke:var(--ink);stroke-width:2.4;
   stroke-linecap:round;stroke-linejoin:round}
 .arthumb svg .o{stroke:var(--orange)}
@@ -903,6 +913,11 @@ li.trow .detail{grid-column:1/-1}
   .ryrow{grid-template-columns:1fr;gap:1px}
   .rycard dl{grid-template-columns:70px 1fr}
 }
+
+/* 出すときに、まず展示か公募かを選ぶ。項目が丸ごと入れ替わるので、
+   フォームの一番上に置いて、他の入力欄と間を空ける。 */
+.bkind{display:flex;gap:6px;margin-bottom:16px;padding-bottom:14px;
+  box-shadow:inset 0 -1px 0 var(--rule)}
 
 /* SNS。ヘッダから外して、GEIDAY 本体の話が集まる記事タブに置いた。
    面で押せるようにして、線のリンクにしない。 */
@@ -1180,9 +1195,12 @@ footer b{color:var(--sub)}
   .tabs::-webkit-scrollbar{display:none}
   .tabs::before,.tabs::after{content:"";flex:0 0 14px}
   .tab{padding:8px 12px;flex:0 0 auto;scroll-snap-align:start;white-space:nowrap}
-  .brand{gap:12px} .gmarkwrap{width:48px;flex:0 0 48px}
-  .gword{font-size:30px;letter-spacing:.03em}
-  .brand small{font-size:13px;letter-spacing:.2em;margin-top:5px}
+  .hrow{padding:11px 15px 4px;gap:10px}
+  .brand{gap:11px} .gmarkwrap{width:42px;flex:0 0 42px}
+  /* 狭いときは横に並べきれないので、タグラインだけ下の段に落とす */
+  .btxt{gap:0} .gword{font-size:28px;letter-spacing:.03em}
+  .brand small{font-size:11.5px;letter-spacing:.18em;flex-basis:100%}
+  .hsns a{width:32px;height:32px}
   /* 中央寄せの長い文は「出ま／す。」のように割れて読みにくい */
   .empty{text-align:left;padding:34px 4px}
   /* 入れ子のスクロールをやめて、そのまま流す */
@@ -1207,19 +1225,32 @@ footer b{color:var(--sub)}
       <span class="btxt"><span class="gword">Geiday</span>
         <small>藝大を、可視化する。</small></span>
     </div>
+    <div class="hsns">
+      <a href="https://x.com/geiday_" target="_blank" rel="noopener noreferrer"
+         title="X" aria-label="X">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="currentColor" aria-hidden="true">
+          <path d="M18.9 2H22l-7 8 8.2 12h-6.4l-5-7.3L5.9 22H2.8l7.5-8.6L2.4 2h6.6l4.5 6.7L18.9 2Zm-1.1 18h1.7L7.3 3.8H5.5L17.8 20Z"/>
+        </svg></a>
+      <a href="https://www.instagram.com/geiday_/" target="_blank" rel="noopener noreferrer"
+         title="Instagram" aria-label="Instagram">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
+             stroke-width="1.9" aria-hidden="true">
+          <rect x="2.8" y="2.8" width="18.4" height="18.4" rx="5.2"/>
+          <circle cx="12" cy="12" r="4.1"/>
+          <circle cx="17.6" cy="6.4" r="1.15" fill="currentColor" stroke="none"/>
+        </svg></a>
+    </div>
   </div>
   <div class="tabs">
     <button class="tab on" data-p="find">さがす</button>
     <button class="tab" data-p="tt">時間割</button>
-    <button class="tab" data-p="fav">お気に入り</button>
     <button class="tab" data-p="map">校内地図</button>
     <button class="tab" data-p="tea">教員</button>
     <button class="tab" data-p="art">アーティスト</button>
     <button class="tab" data-p="rs">予約</button>
-    <button class="tab" data-p="ex">展示</button>
+    <button class="tab" data-p="ex">展示・公募</button>
     <button class="tab" data-p="ko">講評</button>
     <button class="tab" data-p="gv">譲り合い</button>
-    <button class="tab" data-p="kb">公募</button>
     <button class="tab" data-p="ry">留学</button>
     <button class="tab" data-p="sk">就活</button>
     <button class="tab" data-p="ar">記事</button>
@@ -1244,14 +1275,25 @@ footer b{color:var(--sub)}
       <div class="seg" id="termseg">
         <button data-t="前期" class="on">前期</button><button data-t="後期">後期</button>
       </div>
+      <!-- お気に入りは、それだけでタブを1つ使うほどの量ではない。
+           時間割の隣に置くと「入れる候補を見る → 表に入れる」が1画面で終わる。 -->
+      <div class="seg" id="ttview">
+        <button data-v="tt" class="on">表</button><button data-v="fav">お気に入り</button>
+      </div>
       <div class="sum">
         <span><b id="sumcr">0</b> 単位</span>
         <span><b id="sumn">0</b> コマ</span>
       </div>
     </div>
-    <table class="grid"><thead><tr id="ghead"></tr></thead><tbody id="gbody"></tbody></table>
-    <div class="other" id="otherwrap"></div>
-    <div id="pickwrap"></div>
+    <div id="ttwrap">
+      <table class="grid"><thead><tr id="ghead"></tr></thead><tbody id="gbody"></tbody></table>
+      <div class="other" id="otherwrap"></div>
+      <div id="pickwrap"></div>
+    </div>
+    <div id="favwrap" style="display:none">
+      <div class="favbar" id="favbar"></div>
+      <ol id="favlist"></ol>
+    </div>
   </section>
 
   <!-- ─── さがす ─── -->
@@ -1265,12 +1307,6 @@ footer b{color:var(--sub)}
     <div class="count" id="count"></div>
     <ol id="list"></ol>
     <button class="more" id="more">さらに表示</button>
-  </section>
-
-  <!-- ─── お気に入り ─── -->
-  <section class="pane" id="p-fav">
-    <div class="favbar" id="favbar"></div>
-    <ol id="favlist"></ol>
   </section>
 
   <!-- ─── 教員 ─── -->
@@ -1297,7 +1333,6 @@ footer b{color:var(--sub)}
   <section class="pane" id="p-ex"></section>
   <section class="pane" id="p-ko"></section>
   <section class="pane" id="p-gv"></section>
-  <section class="pane" id="p-kb"></section>
   <section class="pane" id="p-ry"></section>
   <section class="pane" id="p-sk"></section>
   <section class="pane" id="p-ar"></section>
@@ -1998,7 +2033,7 @@ function bindRows(root, arr, withTag){
       e.stopPropagation(); toggleFav(c);
       const b=li.querySelector(".fav");
       b.classList.toggle("on", isFav(c)); b.textContent = isFav(c)?"★":"☆";
-      if(pane==="fav") renderFav();
+      if(pane==="tt") renderFav();
       else if(li.classList.contains("open")) openDetail(li,c);
     };
     li.onclick = e=>{
@@ -2159,10 +2194,10 @@ function go(p){
   pane=p;
   document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("on",t.dataset.p===p));
   document.querySelectorAll(".pane").forEach(x=>x.classList.toggle("on",x.id==="p-"+p));
-  if(p==="tt") renderTT(); if(p==="find") renderFind(); if(p==="fav") renderFav();
+  if(p==="tt"){ renderTT(); renderFav(); } if(p==="find") renderFind();
   if(p==="tea" && typeof renderTeachers==="function") renderTeachers();
   if(p==="art" && typeof renderArtists==="function") renderArtists();
-  if(["ex","ko","gv","kb"].includes(p) && typeof renderBoard==="function") renderBoard(p);
+  if(["ex","ko","gv"].includes(p) && typeof renderBoard==="function") renderBoard(p);
   if(p==="ry" && typeof renderRyugaku==="function") renderRyugaku();
   if(p==="sk" && typeof renderShukatsu==="function") renderShukatsu();
   if(p==="ar" && typeof renderArticles==="function") renderArticles();
@@ -2252,6 +2287,15 @@ fetch("courses.json",{cache:"no-store"}).then(r=>r.json()).then(d=>{
   document.getElementById("setme-go").onclick=()=>go("acc");
   window.__paintSetMe=paintSetMe; paintSetMe();
   document.querySelectorAll(".tab").forEach(t=> t.onclick=()=>go(t.dataset.p));
+  /* 時間割の中で「表」と「お気に入り」を入れ替える。
+     画面ごと切り替えるのではなく、上の単位数はそのまま残す。 */
+  document.querySelectorAll("#ttview button").forEach(b=> b.onclick=()=>{
+    const v=b.dataset.v;
+    document.querySelectorAll("#ttview button").forEach(x=>x.classList.toggle("on",x===b));
+    document.getElementById("ttwrap").style.display  = v==="tt"  ? "" : "none";
+    document.getElementById("favwrap").style.display = v==="fav" ? "" : "none";
+    if(v==="fav") renderFav();
+  });
   migrateTT();
   document.getElementById("ttgrade").innerHTML =
     GRADES_TT.map(([v,t])=>`<option value="${v}" ${v===ttGrade?"selected":""}>${t}の時間割</option>`).join("");
