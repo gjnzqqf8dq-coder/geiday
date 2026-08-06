@@ -29,32 +29,32 @@ const DEPTLIST=["デザイン","油画","日本画","彫刻","工芸","建築","
 
 /* ── 4つの板の定義 ───────────────────────── */
 const BOARDS={
-  /* 展示と公募は、どちらも「日付までに動くもの」なので1つの板にまとめた。
-     タブが増えすぎていたのと、展示を見に行く導線と公募に出す導線は
+  /* 展示と講評は、どちらも「その日に行けば見られるもの」なので1つの板にまとめた。
+     他の科の講評は行くといちばん勉強になる、という話と、展示を見に行く話は
      同じ気分で開くところだから。並びは日付順で、両方が混ざって出る。 */
   ex:{
     key:'geidai_exhib_v1',
     dummy:()=> [
       ...((typeof DUMMY_EXHIB!=='undefined'?DUMMY_EXHIB:[]).map(x=>({...x,_t:'展示'}))),
-      ...((typeof REAL_KOBO!=='undefined'?REAL_KOBO:[]).map(x=>({...x,_t:'公募'}))),
+      ...((typeof DUMMY_KOUHYO!=='undefined'?DUMMY_KOUHYO:[]).map(x=>({...x,_t:'講評'}))),
     ],
-    title:'展示・公募',
-    lead:'展示と、いま出せる公募。日付の近い順に並びます。',
-    filters:[{k:'t',label:'種類',opts:['展示','公募']},
+    title:'展示・講評',
+    lead:'学内・学外の展示と、講評の日程。日付の近い順に並びます。',
+    filters:[{k:'t',label:'種類',opts:['展示','講評']},
              {k:'when',label:'いつ',opts:['これから','開催中','終わった']}],
     /* 終わったものが上に来ても仕方がない。
        これから・開催中を先に、その中で日付の近い順。 */
     sort:(a,b)=>{
       const rank=x=>{
-        if(x._t==='公募') return (x.due||'')>=TODAY?0:2;
+        if(x._t==='講評') return (x.date||'')>=TODAY?0:2;
         return (x.from||'')>TODAY?1 : ((x.to||'')>=TODAY?0:2);
       };
-      const key=x=> x._t==='公募' ? (x.due||'') : (x.from||'');
+      const key=x=> x._t==='講評' ? (x.date||'') : (x.from||'');
       return rank(a)-rank(b) || key(a).localeCompare(key(b));
     },
-    /* 出すときは、まず展示か公募かを選ぶ。選んだほうの項目だけ出す。 */
-    kinds:['展示','公募'],
-    fieldsFor(k){ return k==='公募' ? this.fieldsKobo : this.fieldsExhib; },
+    /* 出すときは、まず展示か講評かを選ぶ。聞くことが違う。 */
+    kinds:['展示','講評'],
+    fieldsFor(k){ return k==='講評' ? this.fieldsKouhyo : this.fieldsExhib; },
     fieldsExhib:[
       {k:'title',t:'展示の名前',type:'text',req:true,max:40},
       {k:'who',t:'誰の展示',type:'text',max:30,ph:'例）デザイン科 有志'},
@@ -66,28 +66,26 @@ const BOARDS={
       {k:'body',t:'ひとこと',type:'area',max:140},
       {k:'url',t:'リンク',type:'url',ph:'https://'},
     ],
-    fieldsKobo:[
-      {k:'title',t:'名称',type:'text',req:true,max:50},
-      {k:'kind',t:'種類',type:'sel',opts:['学内','学外','奨学金'],req:true},
-      {k:'org',t:'主催',type:'text',max:40},
-      {k:'due',t:'締切',type:'date',req:true},
-      {k:'target',t:'対象',type:'text',max:30,ph:'例）学部・大学院'},
-      {k:'amount',t:'金額（円・わかれば）',type:'num'},
-      {k:'url',t:'公式ページ',type:'url',ph:'https://',req:true},
-      {k:'body',t:'ひとこと（要項の転載はしないでください）',type:'area',max:120},
+    fieldsKouhyo:[
+      {k:'title',t:'なにの講評か',type:'text',req:true,max:40},
+      {k:'dept',t:'科',type:'sel',opts:DEPTLIST,req:true},
+      {k:'date',t:'日にち',type:'date',req:true},
+      {k:'period',t:'時間',type:'text',max:20,ph:'例）2〜5限'},
+      {k:'bld',t:'場所',type:'bld'},
+      {k:'open',t:'他の科の人も見られる',type:'check'},
+      {k:'body',t:'ひとこと',type:'area',max:140},
     ],
     get fields(){ return this.fieldsExhib; },   // 旧い呼び出しへの保険
     row(x){
-      if(x._t==='公募'){
-        const left=Math.ceil((new Date(x.due)-new Date(TODAY))/86400000);
-        const st=left>=0?(left<=14?'あと'+left+'日':'公募'):'過ぎた';
-        const amt = x.amountRaw ? x.amountRaw
-                  : (x.amount ? Number(x.amount).toLocaleString()+'円' : '');
+      if(x._t==='講評'){
+        /* 「これから」が全部オレンジだと一面オレンジになる。
+           2週間以内だけオレンジ（急ぎ）、先のものは青にして配分を作る。 */
+        const left=Math.ceil((new Date(x.date)-new Date(TODAY))/86400000);
+        const st=left<0?'終わった':(left<=14?(left===0?'今日':'あと'+left+'日'):'講評');
         return {tag:st, tagCls:left<0?'past':(left<=14?'soon':'live'),
-          head:x.title, sub:[x.kind,x.org].filter(Boolean).join(' ／ '),
-          meta:`締切 ${x.dueRaw||x.due}${amt?' ／ '+amt:''}`,
-          body:[x.target?'応募資格：'+x.target:'', x.body].filter(Boolean).join('\n'),
-          url:x.url};
+          head:x.title, sub:[x.dept?x.dept+'科':'',x.bld?bldName(x.bld):''].filter(Boolean).join(' ／ '),
+          meta:`${x.date}${x.period?' '+x.period:''}${x.open?' ／ 見学できます':' ／ 学内向け'}`,
+          body:x.body};
       }
       const st=x.from>TODAY?'これから':(x.to>=TODAY?'開催中':'終わった');
       return {tag:st, tagCls:st==='開催中'?'live':(st==='これから'?'soon':'past'),
@@ -97,11 +95,10 @@ const BOARDS={
     match(x,f){
       if(f.t && f.t!==x._t) return false;
       if(!f.when) return true;
-      if(x._t==='公募') return f.when==='終わった' ? (x.due||'')<TODAY : (x.due||'')>=TODAY;
+      if(x._t==='講評') return f.when==='終わった' ? (x.date||'')<TODAY : (x.date||'')>=TODAY;
       const st=x.from>TODAY?'これから':(x.to>=TODAY?'開催中':'終わった');
       return f.when===st;
     },
-    note:'公募は応募の前に必ず公式ページで最新の要項を確認してください。要項の本文は貼らないでください。',
   },
   gv:{
     key:'geidai_give_v1', dummy:()=> (typeof DUMMY_GIVE!=='undefined'?DUMMY_GIVE:[]),
@@ -126,43 +123,50 @@ const BOARDS={
     match(x,f){ return (!f.mode||f.mode===x.mode)&&(!f.cat||f.cat===x.cat); },
     note:'無償のやりとりだけです。',
   },
-  ko:{
-    key:'geidai_kouhyo_v1', dummy:()=> (typeof DUMMY_KOUHYO!=='undefined'?DUMMY_KOUHYO:[]),
-    title:'講評・展示の日程',
-    lead:'講評や課題展示の日程を持ち寄る場所です。他の科の講評は、行くと一番勉強になります。',
-    filters:[{k:'when',label:'いつ',opts:['これから','終わった']},
-             {k:'dept',label:'科',opts:DEPTLIST}],
-    sort:(a,b)=> (a.date||'').localeCompare(b.date||''),
+  kb:{
+    key:'geidai_kobo_v1',
+    /* ここだけダミーではなく実データ。1件ずつ公式ページを開いて
+       締切・応募資格・URLを確認したものを使う。 */
+    dummy:()=> (typeof REAL_KOBO!=='undefined'?REAL_KOBO:[]),
+    title:'公募・奨学金',
+    lead:'いま応募できる公募と奨学金。締切の近い順。',
+    filters:[{k:'kind',label:'種類',opts:['学内','学外','奨学金']},
+             {k:'when',label:'締切',opts:['まだ間に合う','過ぎた']}],
+    sort:(a,b)=> (a.due||'').localeCompare(b.due||''),
     fields:[
-      {k:'title',t:'なにの講評か',type:'text',req:true,max:40},
-      {k:'dept',t:'科',type:'sel',opts:DEPTLIST,req:true},
-      {k:'date',t:'日にち',type:'date',req:true},
-      {k:'period',t:'時間',type:'text',max:20,ph:'例）2〜5限'},
-      {k:'bld',t:'場所',type:'bld'},
-      {k:'open',t:'他の科の人も見られる',type:'check'},
-      {k:'body',t:'ひとこと',type:'area',max:140},
+      {k:'title',t:'名称',type:'text',req:true,max:50},
+      {k:'kind',t:'種類',type:'sel',opts:['学内','学外','奨学金'],req:true},
+      {k:'org',t:'主催',type:'text',max:40},
+      {k:'due',t:'締切',type:'date',req:true},
+      {k:'target',t:'対象',type:'text',max:30,ph:'例）学部・大学院'},
+      {k:'amount',t:'金額（円・わかれば）',type:'num'},
+      {k:'url',t:'公式ページ',type:'url',ph:'https://',req:true},
+      {k:'body',t:'ひとこと（要項の転載はしないでください）',type:'area',max:120},
     ],
     row(x){
-      /* 「これから」が全部オレンジだと一面オレンジになる。
-         2週間以内だけオレンジ（急ぎ）、先のものは青にして配分を作る。 */
-      const left=Math.ceil((new Date(x.date)-new Date(TODAY))/86400000);
-      const st=left<0?'終わった':(left<=14?(left===0?'今日':'あと'+left+'日'):'これから');
-      return {tag:st, tagCls:left<0?'past':(left<=14?'soon':'live'),
-        head:x.title, sub:[x.dept?x.dept+'科':'',x.bld?bldName(x.bld):''].filter(Boolean).join(' ／ '),
-        meta:`${x.date}${x.period?' '+x.period:''}${x.open?' ／ 見学できます':' ／ 学内向け'}`,
-        body:x.body};
+      const left=Math.ceil((new Date(x.due)-new Date(TODAY))/86400000);
+      const st=left>=0?(left<=14?'あと'+left+'日':'まだ間に合う'):'過ぎた';
+      const amt = x.amountRaw ? x.amountRaw
+                : (x.amount ? Number(x.amount).toLocaleString()+'円' : '');
+      return {tag:st, tagCls:left<0?'past':(left<=14?'live':'soon'),
+        head:x.title, sub:[x.kind,x.org].filter(Boolean).join(' ／ '),
+        meta:`締切 ${x.dueRaw||x.due}${amt?' ／ '+amt:''}`,
+        body:[x.target?'応募資格：'+x.target:'', x.body].filter(Boolean).join('\n'),
+        url:x.url};
     },
-    match(x,f){ const st=x.date>=TODAY?'これから':'終わった';
-      return (!f.when||f.when===st)&&(!f.dept||f.dept===x.dept); },
+    match(x,f){ const left=Math.ceil((new Date(x.due)-new Date(TODAY))/86400000);
+      const st=left>=0?'まだ間に合う':'過ぎた';
+      return (!f.kind||f.kind===x.kind)&&(!f.when||f.when===st); },
+    note:'応募の前に必ず公式ページで最新の要項を確認してください。要項の本文は貼らないでください。',
   },
 };
 
 const state={};
 Object.keys(BOARDS).forEach(k=>state[k]={f:{},open:false,kind:(BOARDS[k].kinds||[''])[0]});
 const mineOf=id=>LSg(BOARDS[id].key,[]);
-/* 展示・公募の板には、1件ずつ公式ページで確かめた公募の実データが混ざっている。
-   サーバに投稿が付いても、これは引っ込めない。 */
-const REALDATA = new Set(['ex']);
+/* 公募だけは、あらかじめ入っているのがダミーではなく
+   1件ずつ公式ページで確かめた実データ。サーバに投稿が付いても引っ込めない。 */
+const REALDATA = new Set(['kb']);
 const allOf=id=>{
   /* サーバに本物が入っている板では、ダミーを出さない。
      本物と作り物が混ざると、どれが本当か分からなくなる。 */
@@ -240,7 +244,12 @@ const openId = {};
 function detailHTML(id,x){
   const rows=[];
   const add=(k,v)=>{ if(v) rows.push([k,v]); };
-  if(id==='ex' && x._t==='公募'){
+  if(id==='ex' && x._t==='講評'){
+    add('日時', [x.date,x.period].filter(Boolean).join(' '));
+    add('場所', x.bld?bldName(x.bld):'');
+    add('科', x.dept);
+    add('見学', x.open?'他の科の人も見られます':'学内向け');
+  } else if(id==='kb'){
     add('締切', x.dueRaw||x.due);
     add('主催', x.org);
     add('対象', x.target);
@@ -255,11 +264,6 @@ function detailHTML(id,x){
     add('受け渡し', x.bld?bldName(x.bld):'');
     add('会える時間', x.meet);
     add('出した人', x.dept?x.dept+'科':'');
-  } else if(id==='ko'){
-    add('日時', [x.date,x.period].filter(Boolean).join(' '));
-    add('場所', x.bld?bldName(x.bld):'');
-    add('科', x.dept);
-    add('見学', x.open?'他の科の人も見られます':'学内向け');
   }
   return `<div class="bdet">
     ${x.img?`<img class="bdpic" src="${esc(x.img)}" alt="">`:''}
@@ -274,21 +278,28 @@ function detailHTML(id,x){
   </div>`;
 }
 
-/* 公募には写真が無い。展示と混ざったときに行の背が揃わないので、
-   種類（学内／学外／奨学金）が分かる図をその場で描く。写真の代わり。
+/* 講評には写真が無い。展示と混ざったときに行の背が揃わないので、
+   科ごとに違う図をその場で描く。写真の代わり。
    使う色は青と薄い青とオレンジだけ。 */
-function koboThumb(x){
-  const K={'学内':0,'学外':1,'奨学金':2}[x.kind] ?? 1;
+function kouhyoThumb(x){
+  const i = [...String(x.dept||'')].reduce((a,c)=>a+c.charCodeAt(0),0) % 3;
   const body=[
-    `<rect x="14" y="20" width="36" height="30" fill="#093FB4"/>
-     <rect x="22" y="28" width="20" height="4" fill="#EAF0FB"/>
-     <rect x="22" y="36" width="14" height="4" fill="#EAF0FB"/>`,
-    `<circle cx="32" cy="28" r="11" fill="#093FB4"/>
-     <path d="M18 52c0-8 6-13 14-13s14 5 14 13z" fill="#093FB4"/>
-     <circle cx="44" cy="18" r="6" fill="#FF5035"/>`,
-    `<circle cx="32" cy="34" r="15" fill="#FF5035"/>
-     <path d="M28 30h8M28 38h8M32 24v20" stroke="#1A1A1A" stroke-width="2.4" fill="none"/>`,
-  ][K];
+    /* 壁に掛かった作品と、見ている人 */
+    `<rect x="12" y="14" width="26" height="22" fill="#093FB4"/>
+     <rect x="42" y="14" width="12" height="22" fill="#FF5035"/>
+     <circle cx="26" cy="46" r="5" fill="#093FB4"/>
+     <circle cx="40" cy="46" r="5" fill="#093FB4"/>`,
+    /* 台の上の立体を囲む */
+    `<rect x="24" y="18" width="16" height="16" fill="#FF5035"/>
+     <rect x="18" y="34" width="28" height="5" fill="#093FB4"/>
+     <circle cx="13" cy="47" r="5" fill="#093FB4"/>
+     <circle cx="32" cy="50" r="5" fill="#093FB4"/>
+     <circle cx="51" cy="47" r="5" fill="#093FB4"/>`,
+    /* 発表と、指している手 */
+    `<rect x="10" y="14" width="34" height="24" fill="#093FB4"/>
+     <path d="M14 44h36M14 50h24" stroke="#093FB4" stroke-width="3" stroke-linecap="round"/>
+     <circle cx="50" cy="26" r="7" fill="#FF5035"/>`,
+  ][i];
   return 'data:image/svg+xml;utf8,'+encodeURIComponent(
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="96" height="96">`+
     `<rect width="64" height="64" fill="#DCE5F7"/>${body}</svg>`);
@@ -296,7 +307,7 @@ function koboThumb(x){
 
 function itemHTML(id,x){
   const r=BOARDS[id].row(x);
-  if(id==='ex' && x._t==='公募' && !x.img) x={...x, img:koboThumb(x)};
+  if(id==='ex' && x._t==='講評' && !x.img) x={...x, img:kouhyoThumb(x)};
   const on = openId[id]===x.id;
   return `<div class="bitem${x.img?' haspic':''}${on?' open':''}" data-open="${esc(x.id)}">
     <span class="btag ${r.tagCls}">${esc(r.tag)}</span>

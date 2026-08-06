@@ -89,22 +89,21 @@ header{background:var(--ink);position:sticky;top:0;z-index:30}
 /* ヘッダーは画面幅いっぱいに使う。中央に寄せると、
    広い画面でロゴとタグラインが真ん中に浮いて据わりが悪い。
 
-   帯の高さを詰めるため、タグラインは Geiday の「下」ではなく「横」に置く。
-   下に積むと 60px＋余白＋18px で100px超えるが、横なら文字のいちばん高いところ
-   だけで決まるので、名前を小さくせずに帯を2/3にできる。 */
-.hrow{width:100%;padding:15px 48px 5px;display:flex;align-items:center;gap:24px}
+   タグラインは Geiday の下。公式サイトと同じ積み方。
+   横に並べると帯は低くなるが、名前とタグラインが1行に伸びて締まらない。 */
+.hrow{width:100%;padding:16px 48px 6px;display:flex;align-items:center;gap:24px}
 /* 公式のロゴ（鳥のマーク＋Geiday）＋ タグライン */
-.brand{white-space:nowrap;display:flex;align-items:baseline;gap:18px}
+.brand{white-space:nowrap;display:flex;align-items:center;gap:20px}
 /* マークは背景を敷かずに、そのまま青の上に置く。
    logo.js の画像は不透明画素の外接矩形で切り抜いてあり、
    縁に白いにじみが無いことを確認済みなので、白い輪は出ない。 */
-.gmarkwrap{display:block;width:70px;flex:0 0 70px;line-height:0;align-self:center}
+.gmarkwrap{display:block;width:82px;flex:0 0 82px;line-height:0}
 .gmark{width:100%;height:auto;display:block}
-.btxt{display:flex;align-items:baseline;gap:20px;flex-wrap:wrap}
+.btxt{display:block}
 .gword{font-family:Karla,"Helvetica Neue",Arial,sans-serif;font-weight:700;
   font-size:52px;letter-spacing:.04em;color:var(--paper);display:block;line-height:1}
 .brand small{display:block;font-size:17px;letter-spacing:.28em;color:#fff;
-  font-weight:700;opacity:.97}
+  font-weight:700;opacity:.97;margin-top:9px}
 /* 公式サイトと同じく、帯の右端にXとInstagram */
 .hsns{margin-left:auto;display:flex;gap:4px;align-items:center;flex:0 0 auto}
 .hsns a{display:grid;place-items:center;width:38px;height:38px;border-radius:50%;
@@ -1198,8 +1197,8 @@ footer b{color:var(--sub)}
   .hrow{padding:11px 15px 4px;gap:10px}
   .brand{gap:11px} .gmarkwrap{width:42px;flex:0 0 42px}
   /* 狭いときは横に並べきれないので、タグラインだけ下の段に落とす */
-  .btxt{gap:0} .gword{font-size:28px;letter-spacing:.03em}
-  .brand small{font-size:11.5px;letter-spacing:.18em;flex-basis:100%}
+  .gword{font-size:28px;letter-spacing:.03em}
+  .brand small{font-size:11.5px;letter-spacing:.18em;margin-top:4px}
   .hsns a{width:32px;height:32px}
   /* 中央寄せの長い文は「出ま／す。」のように割れて読みにくい */
   .empty{text-align:left;padding:34px 4px}
@@ -1248,8 +1247,8 @@ footer b{color:var(--sub)}
     <button class="tab" data-p="tea">教員</button>
     <button class="tab" data-p="art">アーティスト</button>
     <button class="tab" data-p="rs">予約</button>
-    <button class="tab" data-p="ex">展示・公募</button>
-    <button class="tab" data-p="ko">講評</button>
+    <button class="tab" data-p="ex">展示・講評</button>
+    <button class="tab" data-p="kb">公募</button>
     <button class="tab" data-p="gv">譲り合い</button>
     <button class="tab" data-p="ry">留学</button>
     <button class="tab" data-p="sk">就活</button>
@@ -1331,7 +1330,7 @@ footer b{color:var(--sub)}
   <section class="pane" id="p-acc"></section>
   <section class="pane" id="p-rs"></section>
   <section class="pane" id="p-ex"></section>
-  <section class="pane" id="p-ko"></section>
+  <section class="pane" id="p-kb"></section>
   <section class="pane" id="p-gv"></section>
   <section class="pane" id="p-ry"></section>
   <section class="pane" id="p-sk"></section>
@@ -2197,7 +2196,7 @@ function go(p){
   if(p==="tt"){ renderTT(); renderFav(); } if(p==="find") renderFind();
   if(p==="tea" && typeof renderTeachers==="function") renderTeachers();
   if(p==="art" && typeof renderArtists==="function") renderArtists();
-  if(["ex","ko","gv"].includes(p) && typeof renderBoard==="function") renderBoard(p);
+  if(["ex","gv","kb"].includes(p) && typeof renderBoard==="function") renderBoard(p);
   if(p==="ry" && typeof renderRyugaku==="function") renderRyugaku();
   if(p==="sk" && typeof renderShukatsu==="function") renderShukatsu();
   if(p==="ar" && typeof renderArticles==="function") renderArticles();
